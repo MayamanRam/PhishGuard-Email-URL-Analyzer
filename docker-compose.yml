@@ -1,0 +1,47 @@
+services:
+  phishguard-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: phishguard-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - phishguard-data:/app/data
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATABASE_URL=sqlite:////app/data/phishguard.db
+      - EVIDENCE_DIR=/app/data/evidence
+      - REPORTS_DIR=/app/data/reports
+      - RATE_LIMIT_PER_MINUTE=120
+      - MAX_UPLOAD_SIZE_BYTES=10485760
+      - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:80,http://127.0.0.1:80
+    networks:
+      - internal-net
+
+  phishguard-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: phishguard-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - phishguard-backend
+    networks:
+      - internal-net
+
+volumes:
+  phishguard-data:
+    driver: local
+
+networks:
+  # Internal network with egress isolation for air-gapped lab operations
+  internal-net:
+    driver: bridge
+

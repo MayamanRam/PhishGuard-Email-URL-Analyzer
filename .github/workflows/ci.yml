@@ -1,0 +1,78 @@
+name: PhishGuard CI/CD Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend-quality-and-tests:
+    name: Backend Security, Type & Functional Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-dev libxslt-dev
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install bandit pytest pytest-asyncio
+
+      - name: Run Bandit AST Security Scan
+        run: |
+          python -m bandit -r backend/app
+
+      - name: Run Pytest Comprehensive Test Suite (Air-Gapped)
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          ENVIRONMENT: "testing"
+        run: |
+          python -m pytest backend/tests -v --durations=10
+
+  frontend-quality-and-tests:
+    name: Frontend Build & Component Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run TypeScript Type Check & Vite Production Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run Vitest Frontend Test Suite
+        working-directory: frontend
+        run: npm test
+

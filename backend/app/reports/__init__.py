@@ -1,0 +1,2 @@
+"""PhishGuard Reports Module."""
+
