@@ -44,7 +44,7 @@ jobs:
 
       - name: Run Pytest Comprehensive Test Suite (Air-Gapped)
         env:
-          DATABASE_URL: "sqlite:///:memory:"
+          DATABASE_URL: "sqlite:///./ci_test.db"
           ENVIRONMENT: "testing"
         run: |
           python -m pytest backend/tests -v --durations=10
